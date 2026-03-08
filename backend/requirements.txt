@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+pypdf2
+pdfplumber
+groq
+edge-tts
+python-multipart
+aiofiles
+pytest
+httpx
+pytest-asyncio
