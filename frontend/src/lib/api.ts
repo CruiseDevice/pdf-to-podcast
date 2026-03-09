@@ -6,10 +6,12 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+export type PodcastStatus = 'pending' | 'extracting' | 'generating' | 'converting' | 'completed' | 'failed';
+
 export interface Podcast {
   id: string;
   filename: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: PodcastStatus;
   audio_url?: string;
   error?: string;
   created_at: string;
