@@ -26,6 +26,8 @@ class Podcast(Base):
     extracted_text = Column(Text, nullable=True)
     transcript = Column(Text, nullable=True)
     status = Column(String(20), default=PodcastStatus.PENDING.value)
+    progress = Column(String(10), default="0")  # 0-100
+    progress_message = Column(String(255), nullable=True)  # e.g., "Extracting page 5 of 12"
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

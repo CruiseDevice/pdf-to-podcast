@@ -12,6 +12,8 @@ export interface Podcast {
   id: string;
   filename: string;
   status: PodcastStatus;
+  progress?: string;
+  progress_message?: string;
   audio_url?: string;
   error?: string;
   created_at: string;
@@ -27,6 +29,8 @@ export interface UploadResponse {
 export interface StatusResponse {
   podcast_id: string;
   status: string;
+  progress?: string;
+  progress_message?: string;
   audio_url?: string;
   error?: string;
 }

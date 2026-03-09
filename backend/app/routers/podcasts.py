@@ -102,6 +102,8 @@ async def get_podcast_status(podcast_id: str, db: Session = Depends(get_db)):
     return {
         "id": podcast.id,
         "status": podcast.status,
+        "progress": podcast.progress,
+        "progress_message": podcast.progress_message,
         "error_message": podcast.error_message
     }
 

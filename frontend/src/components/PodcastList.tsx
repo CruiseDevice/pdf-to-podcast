@@ -6,16 +6,11 @@ import { Podcast, PodcastStatus, listPodcasts, deletePodcast, getPodcastStatus, 
 
 const PROGRESS_STEPS: { status: PodcastStatus; label: string; progress: number }[] = [
   { status: 'pending', label: 'Queued', progress: 0 },
-  { status: 'extracting', label: 'Extracting', progress: 25 },
-  { status: 'generating', label: 'Generating', progress: 50 },
-  { status: 'converting', label: 'Converting', progress: 75 },
+  { status: 'extracting', label: 'Extracting', progress: 20 },
+  { status: 'generating', label: 'Generating', progress: 60 },
+  { status: 'converting', label: 'Converting', progress: 95 },
   { status: 'completed', label: 'Done', progress: 100 },
 ];
-
-const getProgress = (status: PodcastStatus): number => {
-  const step = PROGRESS_STEPS.find(s => s.status === status);
-  return step?.progress ?? 0;
-};
 
 const getCurrentStepLabel = (status: PodcastStatus): string => {
   const step = PROGRESS_STEPS.find(s => s.status === status);
@@ -54,25 +49,29 @@ export default function PodcastList() {
       for (const podcast of processingPodcasts) {
         try {
           const status = await getPodcastStatus(podcast.id);
-          if (status.status !== podcast.status) {
-            setPodcasts((prev) =>
-              prev.map((p) =>
-                p.id === podcast.id
-                  ? { ...p, status: status.status as PodcastStatus, audio_url: status.audio_url, error: status.error }
-                  : p
-              )
-            );
-            if (status.status === 'completed') {
-              toast.success(`${podcast.filename} is ready!`);
-            } else if (status.status === 'failed') {
-              toast.error(`${podcast.filename} failed to process`);
-            }
+          setPodcasts((prev) =>
+            prev.map((p) =>
+              p.id === podcast.id
+                ? {
+                    ...p,
+                    status: status.status as PodcastStatus,
+                    progress: status.progress,
+                    progress_message: status.progress_message,
+                    error: status.error
+                  }
+                : p
+            )
+          );
+          if (status.status === 'completed') {
+            toast.success(`${podcast.filename} is ready!`);
+          } else if (status.status === 'failed') {
+            toast.error(`${podcast.filename} failed to process`);
           }
         } catch (error) {
           console.error('Failed to check status:', error);
         }
       }
-    }, 3000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [podcasts]);
@@ -107,36 +106,45 @@ export default function PodcastList() {
     );
   };
 
-  const ProgressBar = ({ status }: { status: PodcastStatus }) => {
-    if (status === 'completed' || status === 'failed') return null;
+  const ProgressBar = ({ podcast }: { podcast: Podcast }) => {
+    if (podcast.status === 'completed' || podcast.status === 'failed') return null;
 
-    const progress = getProgress(status);
+    const progress = parseInt(podcast.progress || '0', 10);
+    const message = podcast.progress_message || 'Processing...';
 
     return (
-      <div className="mt-2 w-full">
+      <div className="mt-3 w-full">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Processing...</span>
-          <span>{progress}%</span>
+          <span className="text-blue-600 font-medium">{message}</span>
+          <span className="font-medium">{progress}%</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1">
-          {PROGRESS_STEPS.slice(0, -1).map((step) => (
-            <span
-              key={step.status}
-              className={`text-xs ${
-                getProgress(status) >= step.progress
-                  ? 'text-blue-600 font-medium'
-                  : 'text-gray-400'
-              }`}
-            >
-              {step.label}
-            </span>
-          ))}
+        <div className="flex justify-between mt-2">
+          {PROGRESS_STEPS.slice(0, -1).map((step) => {
+            const isActive = progress >= step.progress;
+            const isCurrent = podcast.status === step.status;
+            return (
+              <div key={step.status} className="flex flex-col items-center">
+                <div
+                  className={`w-2.5 h-2.5 rounded-full mb-1 transition-colors ${
+                    isActive ? 'bg-blue-600' : 'bg-gray-300'
+                  } ${isCurrent ? 'ring-2 ring-blue-300 ring-offset-1' : ''}`}
+                />
+                <span
+                  className={`text-xs transition-colors ${
+                    isActive ? 'text-blue-600 font-medium' : 'text-gray-400'
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -197,7 +205,7 @@ export default function PodcastList() {
                 </button>
               </div>
             </div>
-            <ProgressBar status={podcast.status} />
+            <ProgressBar podcast={podcast} />
           </div>
         ))}
       </div>
