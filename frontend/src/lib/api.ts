@@ -72,5 +72,5 @@ export const deletePodcast = async (podcastId: string): Promise<void> => {
 };
 
 export const getAudioUrl = (podcastId: string): string => {
-  return `${API_BASE_URL}/api/audio/${podcastId}`;
+  return `${API_BASE_URL}/api/v1/podcasts/${podcastId}/audio`;
 };

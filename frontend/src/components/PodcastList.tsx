@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Podcast, listPodcasts, deletePodcast, getPodcastStatus } from '@/lib/api';
+import { Podcast, listPodcasts, deletePodcast, getPodcastStatus, getAudioUrl } from '@/lib/api';
 
 export default function PodcastList() {
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
@@ -125,15 +125,13 @@ export default function PodcastList() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {podcast.status === 'completed' && podcast.audio_url && (
-                <a
-                  href={podcast.audio_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Play
-                </a>
+              {podcast.status === 'completed' && (
+                <audio
+                  controls
+                  src={getAudioUrl(podcast.id)}
+                  className="h-8"
+                  preload="metadata"
+                />
               )}
               {podcast.status === 'processing' && (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
