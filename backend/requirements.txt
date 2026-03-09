@@ -3,8 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 pydantic-settings
-pypdf2
-pdfplumber
+pymupdf
 groq
 edge-tts
 python-multipart
