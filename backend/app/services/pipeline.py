@@ -79,9 +79,17 @@ def process_podcast(podcast_id: str):
         
     except Exception as e:
         logger.error(f"[{podcast_id}] Processing failed: {str(e)}")
-        if podcast:
-            podcast.status = PodcastStatus.FAILED.value
-            podcast.error_message = str(e)
-            db.commit()
+        # Rollback to clear any failed transaction state
+        db.rollback()
+        try:
+            # Re-fetch podcast in case session was invalidated
+            podcast = db.query(Podcast).filter(Podcast.id == podcast_id).first()
+            if podcast:
+                podcast.status = PodcastStatus.FAILED.value
+                podcast.error_message = str(e)
+                db.commit()
+        except Exception as commit_error:
+            logger.error(f"[{podcast_id}] Failed to update error state: {str(commit_error)}")
+            db.rollback()
     finally:
         db.close()
