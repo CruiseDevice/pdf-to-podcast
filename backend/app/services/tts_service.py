@@ -4,6 +4,7 @@ import re
 import asyncio
 import tempfile
 import os
+import random
 from typing import Optional, List, Tuple
 from concurrent.futures import ThreadPoolExecutor
 import edge_tts
@@ -29,15 +30,34 @@ class TTSService:
             "male_male": {"SPEAKER_A": "en-US-GuyNeural", "SPEAKER_B": "en-US-ChristopherNeural"},
             "british": {"SPEAKER_A": "en-GB-SoniaNeural", "SPEAKER_B": "en-GB-RyanNeural"},
         }
+        # Speaking rate variation range (Edge TTS supports +/- percentage)
+        self.rate_variation = (-5, 5)  # +/- 5% variation for naturalness
+
+    def _get_random_rate(self) -> str:
+        """Get a randomized speaking rate for natural variation."""
+        variation = random.randint(*self.rate_variation)
+        if variation > 0:
+            return f"+{variation}%"
+        elif variation < 0:
+            return f"{variation}%"
+        return "+0%"
 
     def _normalize_script(self, script: str) -> str:
-        """Normalize script to handle common variations in speaker labels."""
+        """Normalize script to handle common variations in speaker labels and strip markdown."""
+        # First, strip markdown formatting around speaker labels (e.g., **SPEAKER_A:** -> SPEAKER_A:)
+        script = re.sub(r'\*{1,2}\s*(SPEAKER_[AB])\s*\*{0,2}\s*:', r'\1:', script, flags=re.IGNORECASE)
+        script = re.sub(r'_{1,2}\s*(SPEAKER_[AB])\s*_{0,2}\s*:', r'\1:', script, flags=re.IGNORECASE)
+
         # Normalize speaker labels to uppercase with underscore
         script = re.sub(r'\b[Ss]peaker[-_]?[Aa]\b', 'SPEAKER_A', script)
         script = re.sub(r'\b[Ss]peaker[-_]?[Bb]\b', 'SPEAKER_B', script)
         # Also handle variations like "Host A:", "Host 1:", etc.
         script = re.sub(r'\bHost\s*[-_]?[Aa1]\b', 'SPEAKER_A', script)
         script = re.sub(r'\bHost\s*[-_]?[Bb2]\b', 'SPEAKER_B', script)
+
+        # Strip any remaining markdown bold/italic around dialogue text
+        # But be careful not to strip emphasis that's part of the actual speech
+
         return script
 
     def parse_dialogue(self, script: str) -> List[Tuple[str, str]]:
@@ -140,10 +160,12 @@ class TTSService:
                     voice = voices.get(speaker, self.default_voice)
                     temp_path = os.path.join(temp_dir, f"segment_{idx}.mp3")
 
-                    communicate = edge_tts.Communicate(text, voice)
+                    # Add slight rate variation for naturalness (+/- 5%)
+                    rate = self._get_random_rate()
+                    communicate = edge_tts.Communicate(text, voice, rate=rate)
                     await communicate.save(temp_path)
 
-                    logger.info(f"Generated segment {idx + 1}/{len(dialogue_parts)} for {speaker}")
+                    logger.info(f"Generated segment {idx + 1}/{len(dialogue_parts)} for {speaker} at rate {rate}")
                     return idx, temp_path
 
             # Generate all segments in parallel
