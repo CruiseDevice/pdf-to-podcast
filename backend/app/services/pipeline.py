@@ -64,10 +64,15 @@ def process_podcast(podcast_id: str):
         from app.services.script_generator import ScriptGenerator
         generator = ScriptGenerator()
 
+        # Get mode and voice_preset from podcast (with defaults for backward compatibility)
+        podcast = db.query(Podcast).filter(Podcast.id == podcast_id).first()
+        mode = getattr(podcast, 'mode', 'single') or 'single'
+        voice_preset = getattr(podcast, 'voice_preset', 'default') or 'default'
+
         update_progress(db, podcast_id, PodcastStatus.GENERATING.value, 28, "Identifying key topics...")
         update_progress(db, podcast_id, PodcastStatus.GENERATING.value, 35, "Creating podcast outline...")
 
-        script = generator.generate_podcast_script(raw_text)
+        script = generator.generate_podcast_script(raw_text, mode=mode)
 
         update_progress(db, podcast_id, PodcastStatus.GENERATING.value, 55, "Polishing script...")
 
@@ -93,7 +98,15 @@ def process_podcast(podcast_id: str):
 
         update_progress(db, podcast_id, PodcastStatus.CONVERTING.value, 75, "Converting text to speech...")
 
-        asyncio.run(tts.text_to_speech(script, audio_path))
+        audio_path, warning = asyncio.run(tts.generate_audio(script, audio_path, mode=mode, voice_preset=voice_preset))
+
+        # Log warning if fallback occurred
+        if warning:
+            logger.warning(f"[{podcast_id}] {warning}")
+            # Store warning in error_message so user can see it (but don't fail the podcast)
+            podcast = db.query(Podcast).filter(Podcast.id == podcast_id).first()
+            podcast.error_message = warning
+            db.commit()
 
         update_progress(db, podcast_id, PodcastStatus.CONVERTING.value, 95, "Finalizing audio file...")
 

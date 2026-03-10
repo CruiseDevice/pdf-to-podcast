@@ -16,6 +16,8 @@ export interface Podcast {
   progress_message?: string;
   audio_url?: string;
   error?: string;
+  mode?: string;
+  voice_preset?: string;
   created_at: string;
 }
 
@@ -35,10 +37,25 @@ export interface StatusResponse {
   error?: string;
 }
 
+export interface VoicePreset {
+  id: string;
+  name: string;
+  speakers: {
+    SPEAKER_A: { voice: string; gender: string };
+    SPEAKER_B: { voice: string; gender: string };
+  };
+}
+
+export interface VoicePresetsResponse {
+  presets: VoicePreset[];
+}
+
 export const uploadPDF = async (
   file: File,
   title: string,
   description?: string,
+  mode: string = 'single',
+  voicePreset: string = 'default',
   onProgress?: (progress: number) => void
 ): Promise<UploadResponse> => {
   const formData = new FormData();
@@ -47,6 +64,8 @@ export const uploadPDF = async (
   if (description) {
     formData.append('description', description);
   }
+  formData.append('mode', mode);
+  formData.append('voice_preset', voicePreset);
 
   const response = await api.post<UploadResponse>('/api/v1/podcasts', formData, {
     headers: {
@@ -79,4 +98,9 @@ export const deletePodcast = async (podcastId: string): Promise<void> => {
 
 export const getAudioUrl = (podcastId: string): string => {
   return `${API_BASE_URL}/api/v1/podcasts/${podcastId}/audio`;
+};
+
+export const getVoicePresets = async (): Promise<VoicePresetsResponse> => {
+  const response = await api.get<VoicePresetsResponse>('/api/v1/voice-presets');
+  return response.data;
 };

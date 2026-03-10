@@ -6,6 +6,7 @@ pydantic-settings
 pymupdf
 groq
 edge-tts
+pydub>=0.25.0
 python-multipart
 aiofiles
 pytest
