@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
-import { uploadPDF } from '@/lib/api';
+import { uploadPDF, getVoicePresets, VoicePreset } from '@/lib/api';
 
 interface UploadFormProps {
   onUploadSuccess: () => void;
@@ -15,6 +15,16 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [mode, setMode] = useState<'single' | 'dual'>('single');
+  const [voicePreset, setVoicePreset] = useState('default');
+  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
+
+  // Fetch voice presets on mount
+  useEffect(() => {
+    getVoicePresets()
+      .then(data => setVoicePresets(data.presets))
+      .catch(err => console.error('Failed to fetch voice presets:', err));
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -57,7 +67,7 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
     setProgress(0);
 
     try {
-      await uploadPDF(file, title.trim(), description.trim() || undefined, (p) => {
+      await uploadPDF(file, title.trim(), description.trim() || undefined, mode, voicePreset, (p) => {
         setProgress(p);
       });
 
@@ -65,6 +75,8 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
       setFile(null);
       setTitle('');
       setDescription('');
+      setMode('single');
+      setVoicePreset('default');
       onUploadSuccess();
     } catch (error) {
       console.error('Upload error:', error);
@@ -160,6 +172,61 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
             disabled={uploading}
           />
         </div>
+
+        {/* Mode Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Podcast Style
+          </label>
+          <div className="flex gap-6">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                value="single"
+                checked={mode === 'single'}
+                onChange={() => setMode('single')}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                disabled={uploading}
+              />
+              <span className="text-gray-700">Single Host (Narration)</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                value="dual"
+                checked={mode === 'dual'}
+                onChange={() => setMode('dual')}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                disabled={uploading}
+              />
+              <span className="text-gray-700">Two Hosts (Conversation)</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Voice Preset Selection (only show for dual mode) */}
+        {mode === 'dual' && (
+          <div>
+            <label htmlFor="voicePreset" className="block text-sm font-medium text-gray-700 mb-1">
+              Voice Combination
+            </label>
+            <select
+              id="voicePreset"
+              value={voicePreset}
+              onChange={(e) => setVoicePreset(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow"
+              disabled={uploading}
+            >
+              {voicePresets.map(preset => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Upload Progress */}
         {uploading && progress > 0 && (

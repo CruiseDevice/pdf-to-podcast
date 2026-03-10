@@ -29,6 +29,8 @@ class Podcast(Base):
     progress = Column(String(10), default="0")  # 0-100
     progress_message = Column(String(255), nullable=True)  # e.g., "Extracting page 5 of 12"
     error_message = Column(Text, nullable=True)
+    mode = Column(String(20), default="single")  # "single" or "dual"
+    voice_preset = Column(String(50), default="default")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)

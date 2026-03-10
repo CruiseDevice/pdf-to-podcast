@@ -9,6 +9,8 @@ class PodcastResponse(BaseModel):
     description: Optional[str]
     source_filename: str
     status: str
+    mode: str = "single"
+    voice_preset: str = "default"
     created_at: datetime
 
     class Config:

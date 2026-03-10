@@ -18,17 +18,30 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+@router.get("/voice-presets")
+async def get_voice_presets():
+    """Get available voice presets for dual-host podcasts"""
+    from app.services.tts_service import TTSService
+    tts = TTSService()
+    return tts.get_voice_presets()
+
+
 @router.post("/podcasts", response_model=PodcastResponse)
 async def create_podcast(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
+    mode: str = Form("single"),
+    voice_preset: str = Form("default"),
     db: Session = Depends(get_db)
 ):
     """
     Upload a PDF and create podcast job
     """
+    # Validate mode
+    if mode not in ["single", "dual"]:
+        raise HTTPException(400, "Mode must be 'single' or 'dual'")
 
     # validate file
     if not file.filename.lower().endswith('.pdf'):
@@ -38,7 +51,7 @@ async def create_podcast(
     content = await file.read()
     if len(content) > settings.max_file_size:
         raise HTTPException(400, f"File size must be under {settings.max_file_size // (1024 * 1024)}MB")
-    
+
     # create podcast record
     podcast_id = str(uuid.uuid4())
     filename = f"{podcast_id}_{file.filename}"
@@ -56,7 +69,9 @@ async def create_podcast(
         description=description,
         source_filename=file.filename,
         source_file_path=file_path,
-        status=PodcastStatus.PENDING.value
+        status=PodcastStatus.PENDING.value,
+        mode=mode,
+        voice_preset=voice_preset
     )
 
     db.add(podcast)
